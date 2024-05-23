@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: cpu-benchmark-exporter
+  name: cpu-benchmark-exporter
+  namespace: [NAMESPACE]
+spec:
+  selector:
+    matchLabels:
+      app: cpu-benchmark-exporter
+  template:
+    metadata:
+      name: cpu-benchmark-exporter
+      labels:
+        app: cpu-benchmark-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9123"
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: cpu-benchmark-exporter
+          image: [IMAGE]
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9123
+              name: http
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 1m
+              memory: 5Mi
+  updateStrategy:
+    type: RollingUpdate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-benchmark-exporter
+  namespace: [NAMESPACE]
+  labels:
+    app: cpu-benchmark-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9123"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9123
+      targetPort: 9123
+      protocol: TCP
+      name: http
+  selector:
+    app: cpu-benchmark-exporter
